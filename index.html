@@ -56,7 +56,7 @@
         </div>
         <div>
           <h1 class="font-display font-bold text-lg leading-tight text-slate-800">Category Naming</h1>
-          <p class="text-xs text-slate-500 font-medium">Visual Vocabulary Monitor (3rd-4th Grade)</p>
+          <p class="text-xs text-slate-500 font-medium">Vocabulary Progress Monitor (3rd-4th Grade)</p>
         </div>
       </div>
 
@@ -92,10 +92,10 @@
       <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 sm:p-8 text-center relative overflow-hidden">
         <div class="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-teal-500 via-emerald-500 to-amber-400"></div>
         <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner text-2xl">
-          <i class="fa-solid fa-icons"></i>
+          <i class="fa-solid fa-layer-group"></i>
         </div>
         <h2 class="font-display font-bold text-2xl text-slate-800 mb-1">Category Naming</h2>
-        <p class="text-slate-500 text-sm mb-6">Enter your initials to start today's 5 picture prompts.</p>
+        <p class="text-slate-500 text-sm mb-6">Enter your initials to start today's 5 category prompts.</p>
 
         <form id="student-login-form" onsubmit="window.handleStudentLogin(event)" class="space-y-4">
           <div>
@@ -180,7 +180,7 @@
           <button id="tts-speed-btn" onclick="window.toggleTTSSpeed()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1">
             <i class="fa-solid fa-gauge-high"></i> <span id="tts-speed-label">Speed: 1.0x</span>
           </button>
-          <button onclick="window.playTTSText('Look at the three items pictured. What category do they belong to? Type your answer.')" class="bg-teal-50 border border-teal-100 text-teal-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1">
+          <button onclick="window.playTTSText('Look at the three items listed. What category do they belong to? Type your answer.')" class="bg-teal-50 border border-teal-100 text-teal-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1">
             <i class="fa-solid fa-volume-high"></i> <span>Instructions</span>
           </button>
         </div>
@@ -354,7 +354,7 @@
     </div>
   </div>
 
-  <!-- APPLICATION ENGINE & RECOVERY SCRIPT -->
+  <!-- APPLICATION ENGINE SCRIPT -->
   <script>
     // Universal Safe Local Storage Wrapper
     const memoryStore = {};
@@ -363,29 +363,6 @@
     }
     function safeSetItem(key, val) {
       try { localStorage.setItem(key, val); } catch (e) { memoryStore[key] = val; }
-    }
-
-    // Picture Card Generator
-    function getItemImageURL(itemName) {
-      const name = itemName.toLowerCase().trim();
-      const imageMap = {
-        "oak": "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=300&auto=format&fit=crop&q=80",
-        "maple": "https://images.unsplash.com/photo-1507499739999-097706ad8914?w=300&auto=format&fit=crop&q=80",
-        "pine": "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=300&auto=format&fit=crop&q=80",
-        "hammer": "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=300&auto=format&fit=crop&q=80",
-        "screwdriver": "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=300&auto=format&fit=crop&q=80",
-        "pliers": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=80",
-        "pacific": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
-        "atlantic": "https://images.unsplash.com/photo-1439405326854-014607f694d7?w=300&auto=format&fit=crop&q=80",
-        "indian": "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=300&auto=format&fit=crop&q=80",
-        "square": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300&auto=format&fit=crop&q=80",
-        "triangle": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=300&auto=format&fit=crop&q=80",
-        "rectangle": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=300&auto=format&fit=crop&q=80",
-        "penny": "https://images.unsplash.com/photo-1561414927-6d86591d0c4f?w=300&auto=format&fit=crop&q=80",
-        "nickel": "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=300&auto=format&fit=crop&q=80",
-        "quarter": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=300&auto=format&fit=crop&q=80"
-      };
-      return imageMap[name] || "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=300&auto=format&fit=crop&q=80";
     }
 
     const CATEGORY_SESSIONS = [
@@ -552,32 +529,28 @@
       session.trials.forEach((trial, index) => {
         const card = document.createElement("div");
         card.className = "bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4";
-        let pictureCardsHTML = `<div class="grid grid-cols-3 gap-3 my-3">`;
+        
+        // Clean text-only word cards (no images)
+        let wordCardsHTML = `<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-3">`;
         trial.items.forEach(itemName => {
-          const imgUrl = getItemImageURL(itemName);
-          pictureCardsHTML += `
-            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-2.5 flex flex-col items-center justify-between text-center shadow-sm">
-              <div class="w-full h-24 sm:h-28 rounded-xl overflow-hidden mb-2 bg-white flex items-center justify-center">
-                <img src="${imgUrl}" alt="${itemName}" class="w-full h-full object-cover">
-              </div>
-              <div class="w-full flex items-center justify-between px-1">
-                <span class="font-display font-bold text-sm text-slate-800">${itemName}</span>
-                <button type="button" onclick="window.playTTSText('${itemName}')" class="text-slate-400 hover:text-teal-600">
-                  <i class="fa-solid fa-volume-high text-xs"></i>
-                </button>
-              </div>
+          wordCardsHTML += `
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between text-center shadow-sm">
+              <span class="font-display font-bold text-base text-slate-800">${itemName}</span>
+              <button type="button" onclick="window.playTTSText('${itemName}')" class="text-slate-400 hover:text-teal-600 transition" title="Listen to word">
+                <i class="fa-solid fa-volume-high text-xs"></i>
+              </button>
             </div>`;
         });
-        pictureCardsHTML += `</div>`;
+        wordCardsHTML += `</div>`;
 
         card.innerHTML = `
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold uppercase tracking-wider text-teal-700 bg-teal-100 px-3 py-1 rounded-lg">Trial ${index + 1} of 5</span>
             <button type="button" onclick="window.playTTSText('${trial.items.join(', ')}')" class="p-1.5 text-slate-400 hover:text-teal-600 transition flex items-center space-x-1 text-xs font-semibold">
-              <i class="fa-solid fa-volume-high"></i> <span>Read 3 Items</span>
+              <i class="fa-solid fa-volume-high"></i> <span>Read All 3 Words</span>
             </button>
           </div>
-          ${pictureCardsHTML}
+          ${wordCardsHTML}
           <div>
             <label for="trial_input_${index}" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Category Name:</label>
             <input type="text" id="trial_input_${index}" required placeholder="Type category here..." autocomplete="off" class="w-full py-3 px-4 rounded-xl border-2 border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-100 transition outline-none text-base font-semibold text-slate-800" />
@@ -629,12 +602,10 @@
         audits: trialAudits
       };
 
-      // Save locally
       const existing = JSON.parse(safeGetItem("cat_app_quiz_records") || "[]");
       existing.push(record);
       safeSetItem("cat_app_quiz_records", JSON.stringify(existing));
 
-      // Async cloud save attempt
       if (window.saveRecordToCloud) {
         window.saveRecordToCloud(record);
       }
@@ -827,7 +798,6 @@
       document.getElementById("app-body")?.classList.toggle("high-contrast-mode");
     };
 
-    // Initialize application view state on load
     document.addEventListener("DOMContentLoaded", function() {
       const savedInitials = safeGetItem("cat_app_current_student");
       if (savedInitials) {
