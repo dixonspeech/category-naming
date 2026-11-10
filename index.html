@@ -109,7 +109,7 @@
         </form>
         <div class="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-400 flex items-center justify-center space-x-2">
           <i class="fa-solid fa-cloud-check text-emerald-500"></i>
-          <span>Progress saved securely in Cloud Database.</span>
+          <span>Progress monitor with automatic data tracking.</span>
         </div>
       </div>
     </section>
@@ -354,51 +354,16 @@
     </div>
   </div>
 
-  <!-- FIREBASE CLOUD DATABASE SDK & APP LOGIC -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-
-    // Standard Cloud Firebase Setup
-    const firebaseConfig = {
-      apiKey: "AIzaSyDemoPlaceholderKey123456789",
-      authDomain: "category-naming-app.firebaseapp.com",
-      projectId: "category-naming-app",
-      storageBucket: "category-naming-app.appspot.com",
-      messagingSenderId: "123456789012",
-      appId: "1:123456789012:web:demo123456"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const quizCollection = collection(db, "quiz_records");
-
-    let cloudRecords = [];
+  <!-- APPLICATION ENGINE & RECOVERY SCRIPT -->
+  <script>
+    // Universal Safe Local Storage Wrapper
     const memoryStore = {};
-
     function safeGetItem(key) {
       try { return localStorage.getItem(key); } catch (e) { return memoryStore[key] || null; }
     }
     function safeSetItem(key, val) {
       try { localStorage.setItem(key, val); } catch (e) { memoryStore[key] = val; }
     }
-
-    // Real-Time Cloud Synchronization
-    onSnapshot(quizCollection, (snapshot) => {
-      cloudRecords = [];
-      snapshot.forEach(doc => {
-        cloudRecords.push({ id: doc.id, ...doc.data() });
-      });
-      cloudRecords.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
-      safeSetItem("cat_app_quiz_records", JSON.stringify(cloudRecords));
-      
-      const adminView = document.getElementById("view-admin");
-      if (adminView && !adminView.classList.contains("hidden")) {
-        window.renderAdminDashboard();
-      }
-    }, (error) => {
-      console.warn("Firestore fallback to local cache:", error);
-    });
 
     // Picture Card Generator
     function getItemImageURL(itemName) {
@@ -446,6 +411,7 @@
     let synth = window.speechSynthesis;
     let chartSessionScoresInstance = null;
     let chartStudentLineInstance = null;
+    let cloudRecords = [];
 
     window.navigateTo = function(viewId) {
       window.stopTTS();
@@ -469,4 +435,447 @@
 
     window.togglePortalMode = function() {
       const adminView = document.getElementById("view-admin");
-      if (adminView
+      if (adminView && !adminView.classList.contains("hidden")) {
+        if (currentStudentInitials) window.handleStudentLoginFlow(currentStudentInitials);
+        else window.navigateTo("login");
+      } else {
+        const modal = document.getElementById("admin-auth-modal");
+        if (modal) {
+          modal.classList.remove("hidden");
+          const input = document.getElementById("admin-passcode-input");
+          if (input) { input.value = ""; input.focus(); }
+        }
+      }
+    };
+
+    window.closeAdminModal = function() {
+      document.getElementById("admin-auth-modal")?.classList.add("hidden");
+    };
+
+    window.handleAdminAuth = function(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById("admin-passcode-input");
+      if (input && input.value.trim() === "admin123") {
+        window.closeAdminModal();
+        window.navigateTo("admin");
+        window.renderAdminDashboard();
+      } else {
+        alert("Incorrect PIN passcode. Please enter admin123.");
+      }
+    };
+
+    window.handleStudentLogin = function(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById("student-initials");
+      if (!input) return;
+      const initials = input.value.trim().toUpperCase();
+      if (initials.length < 2) {
+        alert("Please enter at least 2 letters for your initials.");
+        return;
+      }
+      currentStudentInitials = initials;
+      safeSetItem("cat_app_current_student", initials);
+      updateActiveStudentBadge();
+      window.handleStudentLoginFlow(initials);
+    };
+
+    window.getTodayDateKey = function() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    window.getStudentRecords = function(initials) {
+      const allData = cloudRecords.length > 0 ? cloudRecords : JSON.parse(safeGetItem("cat_app_quiz_records") || "[]");
+      return allData.filter(r => r.initials === initials);
+    };
+
+    window.handleStudentLoginFlow = function(initials) {
+      const studentRecords = window.getStudentRecords(initials);
+      const completedSessionIds = new Set(studentRecords.map(r => r.sessionId));
+      const todayKey = window.getTodayDateKey();
+
+      const todayRecord = studentRecords.find(r => r.dateKey === todayKey);
+      if (todayRecord) {
+        document.getElementById("locked-initials").textContent = initials;
+        document.getElementById("locked-date-display").textContent = todayRecord.dateDisplay || todayKey;
+        document.getElementById("locked-session-title").textContent = todayRecord.sessionTitle;
+        document.getElementById("locked-today-score").textContent = todayRecord.scorePercent + "%";
+        document.getElementById("locked-next-session-num").textContent = "Session #" + (completedSessionIds.size < 20 ? (completedSessionIds.size + 1) : "20 (Done)");
+        window.navigateTo("daily-locked");
+        return;
+      }
+
+      if (completedSessionIds.size >= 20) {
+        let total = 0;
+        studentRecords.forEach(r => total += r.scorePercent);
+        document.getElementById("completed-initials").textContent = initials;
+        document.getElementById("all-completed-avg-score").textContent = Math.round(total / (studentRecords.length || 1)) + "%";
+        document.getElementById("all-completed-count").textContent = completedSessionIds.size + " / 20";
+        window.navigateTo("completed-all");
+        return;
+      }
+
+      let nextSessionId = 1;
+      for (let i = 1; i <= 20; i++) {
+        if (!completedSessionIds.has(i)) { nextSessionId = i; break; }
+      }
+      currentSession = CATEGORY_SESSIONS.find(s => s.id === nextSessionId) || CATEGORY_SESSIONS[0];
+      window.loadTrialsView(currentSession);
+    };
+
+    window.logoutStudent = function() {
+      currentStudentInitials = "";
+      safeSetItem("cat_app_current_student", "");
+      updateActiveStudentBadge();
+      const input = document.getElementById("student-initials");
+      if (input) input.value = "";
+      window.navigateTo("login");
+    };
+
+    function updateActiveStudentBadge() {
+      const badge = document.getElementById("active-student-badge");
+      const display = document.getElementById("current-initials-display");
+      if (currentStudentInitials) {
+        badge?.classList.remove("hidden"); badge?.classList.add("flex");
+        if (display) display.textContent = currentStudentInitials;
+      } else {
+        badge?.classList.add("hidden"); badge?.classList.remove("flex");
+      }
+    }
+
+    window.loadTrialsView = function(session) {
+      window.navigateTo("trials");
+      document.getElementById("session-badge-num").textContent = `Session ${session.id} of 20`;
+      const container = document.getElementById("trials-container");
+      container.innerHTML = "";
+
+      session.trials.forEach((trial, index) => {
+        const card = document.createElement("div");
+        card.className = "bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4";
+        let pictureCardsHTML = `<div class="grid grid-cols-3 gap-3 my-3">`;
+        trial.items.forEach(itemName => {
+          const imgUrl = getItemImageURL(itemName);
+          pictureCardsHTML += `
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-2.5 flex flex-col items-center justify-between text-center shadow-sm">
+              <div class="w-full h-24 sm:h-28 rounded-xl overflow-hidden mb-2 bg-white flex items-center justify-center">
+                <img src="${imgUrl}" alt="${itemName}" class="w-full h-full object-cover">
+              </div>
+              <div class="w-full flex items-center justify-between px-1">
+                <span class="font-display font-bold text-sm text-slate-800">${itemName}</span>
+                <button type="button" onclick="window.playTTSText('${itemName}')" class="text-slate-400 hover:text-teal-600">
+                  <i class="fa-solid fa-volume-high text-xs"></i>
+                </button>
+              </div>
+            </div>`;
+        });
+        pictureCardsHTML += `</div>`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-teal-700 bg-teal-100 px-3 py-1 rounded-lg">Trial ${index + 1} of 5</span>
+            <button type="button" onclick="window.playTTSText('${trial.items.join(', ')}')" class="p-1.5 text-slate-400 hover:text-teal-600 transition flex items-center space-x-1 text-xs font-semibold">
+              <i class="fa-solid fa-volume-high"></i> <span>Read 3 Items</span>
+            </button>
+          </div>
+          ${pictureCardsHTML}
+          <div>
+            <label for="trial_input_${index}" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Category Name:</label>
+            <input type="text" id="trial_input_${index}" required placeholder="Type category here..." autocomplete="off" class="w-full py-3 px-4 rounded-xl border-2 border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-100 transition outline-none text-base font-semibold text-slate-800" />
+          </div>`;
+        container.appendChild(card);
+      });
+    };
+
+    window.checkCategoryMatch = function(userAnswer, targetList) {
+      const normUser = userAnswer.toLowerCase().trim().replace(/[^\w\s]/gi, '');
+      if (!normUser) return false;
+      for (let target of targetList) {
+        const normTarget = target.toLowerCase().trim().replace(/[^\w\s]/gi, '');
+        if (normUser === normTarget || normUser + 's' === normTarget || normUser === normTarget + 's') return true;
+      }
+      return false;
+    };
+
+    window.handleTrialSubmit = function(e) {
+      if (e) e.preventDefault();
+      if (!currentSession || !currentStudentInitials) return;
+
+      let rawScore = 0;
+      const trialAudits = [];
+
+      currentSession.trials.forEach((trial, idx) => {
+        const input = document.getElementById(`trial_input_${idx}`);
+        const userVal = input ? input.value : "";
+        const isCorrect = window.checkCategoryMatch(userVal, trial.targets);
+        if (isCorrect) rawScore++;
+        trialAudits.push({ items: trial.items, userAnswer: userVal || "(Blank)", targets: trial.targets, isCorrect });
+      });
+
+      const scorePercent = Math.round((rawScore / currentSession.trials.length) * 100);
+      const todayKey = window.getTodayDateKey();
+      const dateDisplay = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      const record = {
+        id: "cat_rec_" + Date.now(),
+        initials: currentStudentInitials,
+        sessionId: currentSession.id,
+        sessionTitle: currentSession.title,
+        scoreRaw: rawScore,
+        scoreMax: currentSession.trials.length,
+        scorePercent,
+        dateKey: todayKey,
+        dateDisplay,
+        timestamp: Date.now(),
+        audits: trialAudits
+      };
+
+      // Save locally
+      const existing = JSON.parse(safeGetItem("cat_app_quiz_records") || "[]");
+      existing.push(record);
+      safeSetItem("cat_app_quiz_records", JSON.stringify(existing));
+
+      // Async cloud save attempt
+      if (window.saveRecordToCloud) {
+        window.saveRecordToCloud(record);
+      }
+
+      window.displayResultsView(record);
+    };
+
+    window.displayResultsView = function(record) {
+      window.navigateTo("results");
+      document.getElementById("result-score-percent").textContent = record.scorePercent + "%";
+      document.getElementById("result-score-raw").textContent = `${record.scoreRaw} / ${record.scoreMax}`;
+
+      const auditList = document.getElementById("result-audit-list");
+      auditList.innerHTML = "";
+      record.audits.forEach((aud, i) => {
+        const item = document.createElement("div");
+        item.className = `p-4 rounded-2xl border ${aud.isCorrect ? 'bg-emerald-50/60 border-emerald-200' : 'bg-red-50/60 border-red-200'} space-y-2`;
+        item.innerHTML = `
+          <div class="flex items-start justify-between">
+            <span class="font-bold text-sm text-slate-800">Trial ${i+1}: ${aud.items.join(' • ')}</span>
+            <button onclick="window.playTTSText('${aud.items.join(', ')}. Target: ${aud.targets[0]}')" class="p-1 text-slate-400 hover:text-teal-600"><i class="fa-solid fa-volume-high text-xs"></i></button>
+          </div>
+          <div class="text-xs space-y-1">
+            <p><strong>Your Answer:</strong> <span class="${aud.isCorrect ? 'text-emerald-700 font-bold' : 'text-red-700 font-bold'}">${aud.userAnswer}</span></p>
+            <p class="text-slate-600"><strong>Accepted Targets:</strong> ${aud.targets.join(', ')}</p>
+          </div>`;
+        auditList.appendChild(item);
+      });
+      if (record.scorePercent >= 80 && window.confetti) window.confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+    };
+
+    window.continueToDailyLock = function() {
+      if (currentStudentInitials) window.handleStudentLoginFlow(currentStudentInitials);
+      else window.navigateTo("login");
+    };
+
+    window.toggleTTSSpeed = function() {
+      ttsSpeechRate = ttsSpeechRate === 1.0 ? 0.8 : 1.0;
+      document.getElementById("tts-speed-label").textContent = `Speed: ${ttsSpeechRate}x`;
+    };
+
+    window.playTTSText = function(text) {
+      window.stopTTS();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.rate = ttsSpeechRate;
+      synth.speak(utt);
+    };
+
+    window.stopTTS = function() { if (synth) synth.cancel(); };
+
+    window.renderAdminDashboard = function() {
+      const records = cloudRecords.length > 0 ? cloudRecords : JSON.parse(safeGetItem("cat_app_quiz_records") || "[]");
+      document.getElementById("admin-stat-total-sessions").textContent = records.length;
+      document.getElementById("admin-stat-active-students").textContent = new Set(records.map(r => r.initials)).size;
+
+      let totalScore = 0;
+      records.forEach(r => totalScore += r.scorePercent);
+      const avg = records.length > 0 ? Math.round(totalScore / records.length) : 0;
+      document.getElementById("admin-stat-class-avg").textContent = avg + "%";
+      document.getElementById("admin-stat-top-mastery").textContent = avg >= 80 ? "80%+ Goal Met" : "In Progress";
+
+      renderAdminCharts(records);
+      window.renderRosterTable(records);
+    };
+
+    function renderAdminCharts(records) {
+      const sessionAvgMap = {};
+      for (let i = 1; i <= 20; i++) sessionAvgMap[i] = [];
+      records.forEach(r => { if (sessionAvgMap[r.sessionId]) sessionAvgMap[r.sessionId].push(r.scorePercent); });
+
+      const sessionLabels = [], sessionAverages = [];
+      for (let i = 1; i <= 20; i++) {
+        sessionLabels.push(`S${i}`);
+        const arr = sessionAvgMap[i];
+        sessionAverages.push(arr.length > 0 ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0);
+      }
+
+      const ctxBar = document.getElementById("chart-session-scores");
+      if (ctxBar) {
+        if (chartSessionScoresInstance) chartSessionScoresInstance.destroy();
+        chartSessionScoresInstance = new Chart(ctxBar, {
+          type: 'bar',
+          data: { labels: sessionLabels, datasets: [{ label: 'Class Avg (%)', data: sessionAverages, backgroundColor: '#0d9488', borderRadius: 6 }] },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+        });
+      }
+    }
+
+    window.renderRosterTable = function(records) {
+      const tbody = document.getElementById("admin-roster-tbody");
+      const emptyState = document.getElementById("roster-empty-state");
+      tbody.innerHTML = "";
+      if (records.length === 0) { emptyState?.classList.remove("hidden"); return; }
+      emptyState?.classList.add("hidden");
+
+      const studentMap = {};
+      records.forEach(r => {
+        if (!studentMap[r.initials]) studentMap[r.initials] = [];
+        studentMap[r.initials].push(r);
+      });
+
+      Object.keys(studentMap).forEach(initials => {
+        const list = studentMap[initials];
+        const completedCount = new Set(list.map(r => r.sessionId)).size;
+        const avgScore = Math.round(list.reduce((acc, c) => acc + c.scorePercent, 0) / list.length);
+        const lastActive = list[list.length - 1].dateDisplay || "Recent";
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50 cursor-pointer transition";
+        tr.onclick = function() { window.openStudentDetailModal(initials); };
+        tr.innerHTML = `
+          <td class="py-3.5 px-6 font-bold text-slate-800 flex items-center space-x-2">
+            <span class="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 font-display font-bold flex items-center justify-center text-xs">${initials}</span>
+            <span>${initials}</span>
+          </td>
+          <td class="py-3.5 px-6 font-semibold">${completedCount} / 20 Sessions</td>
+          <td class="py-3.5 px-6 font-bold ${avgScore >= 80 ? 'text-emerald-600' : 'text-amber-600'}">${avgScore}%</td>
+          <td class="py-3.5 px-6 text-slate-500 text-xs">${lastActive}</td>
+          <td class="py-3.5 px-6 text-right">
+            <button class="text-xs bg-teal-50 text-teal-600 hover:bg-teal-100 font-bold px-3 py-1.5 rounded-lg transition">View IEP Report</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    };
+
+    window.filterRosterTable = function() {
+      const q = document.getElementById("roster-search-input").value.trim().toUpperCase();
+      const records = cloudRecords.length > 0 ? cloudRecords : JSON.parse(safeGetItem("cat_app_quiz_records") || "[]");
+      const filtered = q ? records.filter(r => r.initials.includes(q)) : records;
+      window.renderRosterTable(filtered);
+    };
+
+    window.openStudentDetailModal = function(initials) {
+      document.getElementById("student-detail-modal")?.classList.remove("hidden");
+      document.getElementById("detail-avatar").textContent = initials;
+      document.getElementById("detail-student-title").textContent = `Student: ${initials}`;
+
+      const records = window.getStudentRecords(initials);
+      records.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+      const labels = records.map(r => `Session #${r.sessionId}`);
+      const scores = records.map(r => r.scorePercent);
+
+      const ctxLine = document.getElementById("chart-student-line");
+      if (ctxLine) {
+        if (chartStudentLineInstance) chartStudentLineInstance.destroy();
+        chartStudentLineInstance = new Chart(ctxLine, {
+          type: 'line',
+          data: { labels, datasets: [{ label: 'Score (%)', data: scores, borderColor: '#0d9488', fill: true, backgroundColor: 'rgba(13,148,136,0.1)', tension: 0.3 }] },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+        });
+      }
+
+      const historyList = document.getElementById("detail-session-history-list");
+      historyList.innerHTML = "";
+      records.forEach(r => {
+        const item = document.createElement("div");
+        item.className = "bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs";
+        item.innerHTML = `
+          <div><span class="font-bold text-slate-800">Session #${r.sessionId}: ${r.sessionTitle}</span><span class="block text-slate-400">${r.dateDisplay || r.dateKey}</span></div>
+          <div class="text-right"><span class="font-bold text-sm ${r.scorePercent >= 80 ? 'text-emerald-600' : 'text-amber-600'}">${r.scorePercent}%</span><span class="block text-slate-400">(${r.scoreRaw}/${r.scoreMax})</span></div>`;
+        historyList.appendChild(item);
+      });
+    };
+
+    window.closeStudentDetailModal = function() {
+      document.getElementById("student-detail-modal")?.classList.add("hidden");
+    };
+
+    window.exportDataCSV = function() {
+      const records = cloudRecords.length > 0 ? cloudRecords : JSON.parse(safeGetItem("cat_app_quiz_records") || "[]");
+      if (records.length === 0) { alert("No student records available to export."); return; }
+      let csv = "Student Initials,Session ID,Session Title,Score Raw,Score Percent,Date\n";
+      records.forEach(r => {
+        csv += `"${r.initials}",${r.sessionId},"${r.sessionTitle}",${r.scoreRaw}/${r.scoreMax},${r.scorePercent}%,${r.dateDisplay || r.dateKey}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Category_Naming_IEP_Report_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    };
+
+    window.toggleAccessibilityFont = function() {
+      document.getElementById("app-body")?.classList.toggle("font-dyslexic");
+    };
+
+    window.toggleHighContrast = function() {
+      document.getElementById("app-body")?.classList.toggle("high-contrast-mode");
+    };
+
+    // Initialize application view state on load
+    document.addEventListener("DOMContentLoaded", function() {
+      const savedInitials = safeGetItem("cat_app_current_student");
+      if (savedInitials) {
+        currentStudentInitials = savedInitials;
+        updateActiveStudentBadge();
+      }
+      window.navigateTo("login");
+    });
+  </script>
+
+  <!-- BACKGROUND FIREBASE LOADER (SAFE ASYNC SYNC) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyDemoPlaceholderKey123456789",
+        authDomain: "category-naming-app.firebaseapp.com",
+        projectId: "category-naming-app",
+        storageBucket: "category-naming-app.appspot.com",
+        messagingSenderId: "123456789012",
+        appId: "1:123456789012:web:demo123456"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const quizCollection = collection(db, "quiz_records");
+
+      window.saveRecordToCloud = async function(record) {
+        try { await addDoc(quizCollection, record); } catch(e) { console.warn("Cloud save warning:", e); }
+      };
+
+      onSnapshot(quizCollection, (snapshot) => {
+        const records = [];
+        snapshot.forEach(doc => records.push({ id: doc.id, ...doc.data() }));
+        records.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
+        window.cloudRecords = records;
+        safeSetItem("cat_app_quiz_records", JSON.stringify(records));
+        
+        const adminView = document.getElementById("view-admin");
+        if (adminView && !adminView.classList.contains("hidden")) {
+          window.renderAdminDashboard();
+        }
+      }, (err) => console.warn("Firestore sync optional offline fallback active:", err));
+    } catch(err) {
+      console.warn("Firebase optional module not loaded, using local storage engine:", err);
+    }
+  </script>
+</body>
+</html>
