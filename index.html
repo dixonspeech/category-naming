@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Category Naming - Progress Monitor</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Chart.js for Admin Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Canvas Confetti for Celebration Effects -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Fredoka', 'sans-serif'],
+            dyslexic: ['Open Sans', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .high-contrast-mode { background-color: #0f172a !important; color: #f8fafc !important; }
+    .high-contrast-mode .bg-white { background-color: #1e293b !important; color: #f8fafc !important; border-color: #334155 !important; }
+    .high-contrast-mode .text-slate-800, .high-contrast-mode .text-slate-700, .high-contrast-mode .text-slate-600 { color: #f1f5f9 !important; }
+  </style>
+</head>
+<body id="app-body" class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-teal-200 selection:text-teal-900 transition-colors duration-300">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="window.navigateTo('login')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-600 flex items-center justify-center text-white shadow-md shadow-teal-200">
+          <i class="fa-solid fa-shapes text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-display font-bold text-lg leading-tight text-slate-800">Category Naming</h1>
+          <p class="text-xs text-slate-500 font-medium">Visual Vocabulary Monitor (3rd-4th Grade)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button onclick="window.toggleAccessibilityFont()" title="Toggle Dyslexia Font" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition text-xs font-bold border border-slate-200 hidden sm:inline-flex items-center space-x-1">
+          <i class="fa-solid fa-font"></i> <span>Font</span>
+        </button>
+        <button onclick="window.toggleHighContrast()" title="Toggle High Contrast" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition text-xs font-bold border border-slate-200 hidden sm:inline-flex items-center space-x-1">
+          <i class="fa-solid fa-circle-half-stroke"></i> <span>Contrast</span>
+        </button>
+
+        <div id="active-student-badge" class="hidden items-center space-x-2 bg-teal-50 border border-teal-200 text-teal-700 px-3 py-1.5 rounded-full text-xs font-semibold">
+          <i class="fa-solid fa-user-graduate"></i>
+          <span>Initials: <strong id="current-initials-display">--</strong></span>
+          <button onclick="window.logoutStudent()" class="ml-1 text-teal-400 hover:text-teal-900" title="Switch Student">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <button id="nav-portal-btn" onclick="window.togglePortalMode()" type="button" class="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md shadow-teal-100 transition duration-150 active:scale-95">
+          <i class="fa-solid fa-user-shield" id="portal-icon"></i>
+          <span id="portal-btn-text">Teacher Admin</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col justify-center">
+
+    <!-- VIEW 1: STUDENT LOGIN -->
+    <section id="view-login" class="max-w-md w-full mx-auto my-auto py-8">
+      <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 sm:p-8 text-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-teal-500 via-emerald-500 to-amber-400"></div>
+        <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner text-2xl">
+          <i class="fa-solid fa-icons"></i>
+        </div>
+        <h2 class="font-display font-bold text-2xl text-slate-800 mb-1">Category Naming</h2>
+        <p class="text-slate-500 text-sm mb-6">Enter your initials to start today's 5 picture prompts.</p>
+
+        <form id="student-login-form" onsubmit="window.handleStudentLogin(event)" class="space-y-4">
+          <div>
+            <label for="student-initials" class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 text-left">Your Initials (2 to 4 Letters)</label>
+            <input type="text" id="student-initials" maxlength="4" placeholder="e.g. JD or MKA" required autocomplete="off" class="w-full text-center uppercase tracking-widest text-2xl font-bold font-display py-3 px-4 rounded-xl border-2 border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-100 transition outline-none" />
+          </div>
+          <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-teal-200 transition flex items-center justify-center space-x-2 text-base active:scale-98">
+            <span>Start Today's Session</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+        <div class="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-400 flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-cloud-check text-emerald-500"></i>
+          <span>Progress saved securely in Cloud Database.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: DAILY LOCK SCREEN -->
+    <section id="view-daily-locked" class="hidden max-w-lg w-full mx-auto my-auto text-center py-8">
+      <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 relative overflow-hidden">
+        <div class="w-20 h-20 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg shadow-teal-100">
+          <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <h2 class="font-display font-bold text-3xl text-slate-800 mb-2">Great Work Today, <span id="locked-initials" class="text-teal-600">--</span>! 🎉</h2>
+        <p class="text-slate-600 text-sm sm:text-base mb-6">
+          You completed today's 5 category trials (<strong id="locked-date-display">--</strong>). Please come back tomorrow for <span id="locked-next-session-num" class="font-bold text-teal-700">Session #--</span>!
+        </p>
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-4 text-center">
+          <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100">
+            <span class="block text-xs font-semibold text-slate-400 uppercase">Today's Session</span>
+            <span id="locked-session-title" class="font-display font-bold text-sm text-slate-800 truncate block mt-1">--</span>
+          </div>
+          <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100">
+            <span class="block text-xs font-semibold text-slate-400 uppercase">Today's Score</span>
+            <span id="locked-today-score" class="font-display font-bold text-2xl text-emerald-600">--</span>
+          </div>
+        </div>
+        <button onclick="window.logoutStudent()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span>Log Out / Switch Student</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW 3: COMPLETED ALL SESSIONS -->
+    <section id="view-completed-all" class="hidden max-w-lg w-full mx-auto my-auto text-center py-8">
+      <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 relative overflow-hidden">
+        <div class="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg">
+          <i class="fa-solid fa-trophy"></i>
+        </div>
+        <h2 class="font-display font-bold text-3xl text-slate-800 mb-2">Category Master, <span id="completed-initials" class="text-teal-600">--</span>!</h2>
+        <p class="text-slate-600 text-base mb-6">You completed all <strong>20 sessions</strong> (100 category prompts)!</p>
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-4">
+          <div class="bg-white p-3 rounded-xl border border-slate-100">
+            <span class="block text-xs font-semibold text-slate-400">Overall Accuracy</span>
+            <span id="all-completed-avg-score" class="font-display font-bold text-2xl text-emerald-600">0%</span>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-100">
+            <span class="block text-xs font-semibold text-slate-400">Total Completed</span>
+            <span id="all-completed-count" class="font-display font-bold text-2xl text-teal-600">20 / 20</span>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <button onclick="window.logoutStudent()" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl transition">Sign In As Different Student</button>
+          <button onclick="window.togglePortalMode()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl transition">View Teacher Dashboard</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: CATEGORY TRIALS MODULE -->
+    <section id="view-trials" class="hidden flex-1 flex flex-col space-y-6">
+      <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <span id="session-badge-num" class="bg-teal-100 text-teal-700 font-display font-bold px-3 py-1 rounded-lg text-sm">Session 1 of 20</span>
+          <div>
+            <h2 class="font-display font-bold text-xl text-slate-800">What category do these 3 items belong to?</h2>
+            <p class="text-xs text-slate-500 font-medium">Type the category name for each group below.</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button id="tts-speed-btn" onclick="window.toggleTTSSpeed()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1">
+            <i class="fa-solid fa-gauge-high"></i> <span id="tts-speed-label">Speed: 1.0x</span>
+          </button>
+          <button onclick="window.playTTSText('Look at the three items pictured. What category do they belong to? Type your answer.')" class="bg-teal-50 border border-teal-100 text-teal-700 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1">
+            <i class="fa-solid fa-volume-high"></i> <span>Instructions</span>
+          </button>
+        </div>
+      </div>
+
+      <form id="category-trials-form" onsubmit="window.handleTrialSubmit(event)" class="space-y-6">
+        <div id="trials-container" class="space-y-6"></div>
+        <div class="pt-4">
+          <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-teal-200 transition flex items-center justify-center space-x-2 text-base active:scale-98">
+            <i class="fa-solid fa-paper-plane"></i> <span>Submit My Category Answers</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- VIEW 5: TRIAL RESULTS -->
+    <section id="view-results" class="hidden max-w-3xl w-full mx-auto my-auto py-6 space-y-6">
+      <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 sm:p-8 text-center relative overflow-hidden">
+        <div id="result-badge-container" class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg">
+          <i class="fa-solid fa-star"></i>
+        </div>
+        <h2 id="result-feedback-heading" class="font-display font-bold text-3xl text-slate-800 mb-1">Awesome Job!</h2>
+        <p class="text-slate-500 text-base mb-6">Here is your category score for today.</p>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-8 max-w-md mx-auto grid grid-cols-2 gap-4">
+          <div>
+            <span class="block text-xs font-bold uppercase text-slate-400">Score Percentage</span>
+            <span id="result-score-percent" class="font-display font-bold text-4xl text-teal-600">80%</span>
+          </div>
+          <div>
+            <span class="block text-xs font-bold uppercase text-slate-400">Correct Answers</span>
+            <span id="result-score-raw" class="font-display font-bold text-4xl text-slate-800">4 / 5</span>
+          </div>
+        </div>
+
+        <div class="text-left mb-8">
+          <h3 class="font-display font-bold text-lg text-slate-800 mb-3 flex items-center justify-between">
+            <span>Trial Review & Target Categories</span>
+            <span class="text-xs text-slate-400">Click audio icon to listen</span>
+          </h3>
+          <div id="result-audit-list" class="space-y-4"></div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button onclick="window.continueToDailyLock()" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-teal-200 transition flex items-center justify-center space-x-2">
+            <span>Finish Today's Session</span> <i class="fa-solid fa-calendar-check"></i>
+          </button>
+          <button onclick="window.logoutStudent()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3.5 px-6 rounded-xl transition">Sign Out / Switch Initials</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: TEACHER ADMIN DASHBOARD -->
+    <section id="view-admin" class="hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="bg-teal-100 text-teal-700 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase">Teacher Portal</span>
+            <span class="text-xs text-slate-400">Category Naming Progress Monitor</span>
+          </div>
+          <h2 class="font-display font-bold text-2xl text-slate-800 mt-1">Class Progress & IEP Analytics</h2>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button onclick="window.exportDataCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-md transition flex items-center space-x-2">
+            <i class="fa-solid fa-file-csv text-base"></i> <span>Export CSV Data</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-list-check"></i></div>
+          <div><p class="text-xs font-bold uppercase text-slate-400">Total Sessions</p><h3 id="admin-stat-total-sessions" class="font-display font-bold text-2xl text-slate-800">0</h3></div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-chart-line"></i></div>
+          <div><p class="text-xs font-bold uppercase text-slate-400">Class Average</p><h3 id="admin-stat-class-avg" class="font-display font-bold text-2xl text-emerald-600">0%</h3></div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-users"></i></div>
+          <div><p class="text-xs font-bold uppercase text-slate-400">Active Students</p><h3 id="admin-stat-active-students" class="font-display font-bold text-2xl text-slate-800">0</h3></div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-bullseye"></i></div>
+          <div><p class="text-xs font-bold uppercase text-slate-400">Status</p><h3 id="admin-stat-top-mastery" class="font-display font-bold text-lg text-slate-800">--</h3></div>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
+        <h3 class="font-display font-bold text-slate-800 text-base mb-4 flex items-center justify-between">
+          <span>Class Average Score per Session (Sessions 1 to 20)</span>
+          <span class="text-xs text-slate-400">Target: 80%+ Goal</span>
+        </h3>
+        <div class="relative flex-1 min-h-[220px]"><canvas id="chart-session-scores"></canvas></div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="font-display font-bold text-slate-800 text-lg">Student Category Progress Roster</h3>
+            <p class="text-xs text-slate-400">Click any student row to view individual IEP score trend charts and logs.</p>
+          </div>
+          <div class="relative max-w-xs w-full">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="roster-search-input" oninput="window.filterRosterTable()" placeholder="Filter by initials..." class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-teal-500 focus:outline-none transition" />
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase tracking-wider">
+              <tr>
+                <th class="py-3.5 px-6">Initials</th>
+                <th class="py-3.5 px-6">Sessions Completed</th>
+                <th class="py-3.5 px-6">Average Score</th>
+                <th class="py-3.5 px-6">Last Active</th>
+                <th class="py-3.5 px-6 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-roster-tbody" class="divide-y divide-slate-100 text-slate-700"></tbody>
+          </table>
+        </div>
+        <div id="roster-empty-state" class="hidden p-8 text-center text-slate-400 text-sm">No student progress recorded yet.</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL 1: TEACHER ADMIN AUTH -->
+  <div id="admin-auth-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 sm:p-8 text-center border border-slate-100">
+      <div class="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fa-solid fa-lock"></i></div>
+      <h3 class="font-display font-bold text-xl text-slate-800 mb-1">Teacher Admin Access</h3>
+      <p class="text-xs text-slate-500 mb-6">Enter PIN passcode to view class progress reports.</p>
+      <form onsubmit="window.handleAdminAuth(event)" class="space-y-4">
+        <input type="password" id="admin-passcode-input" placeholder="Enter PIN" required class="w-full text-center py-3 px-4 rounded-xl border-2 border-slate-200 focus:border-teal-500 focus:ring-4 focus:ring-teal-100 transition outline-none text-base font-bold tracking-widest" />
+        <div class="flex space-x-2">
+          <button type="button" onclick="window.closeAdminModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl transition text-sm">Cancel</button>
+          <button type="submit" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl shadow-md transition text-sm">Unlock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: STUDENT DRILL-DOWN -->
+  <div id="student-detail-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-100">
+      <div class="p-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-12 h-12 bg-teal-600 text-white font-display font-bold text-xl rounded-2xl flex items-center justify-center shadow-md shadow-teal-200" id="detail-avatar">--</div>
+          <div>
+            <h3 class="font-display font-bold text-xl text-slate-800" id="detail-student-title">Student Initials</h3>
+            <p class="text-xs text-slate-500">Individual Category Naming Progress & History</p>
+          </div>
+        </div>
+        <button onclick="window.closeStudentDetailModal()" class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <h4 class="font-display font-bold text-sm text-slate-800 mb-2">Individual Score Progression</h4>
+          <div class="relative h-48"><canvas id="chart-student-line"></canvas></div>
+        </div>
+        <div>
+          <h4 class="font-display font-bold text-sm text-slate-800 mb-3">Completed Sessions Log</h4>
+          <div class="space-y-3" id="detail-session-history-list"></div>
+        </div>
+      </div>
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="window.closeStudentDetailModal()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-2 rounded-xl text-sm shadow-md transition">Close Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIREBASE CLOUD DATABASE SDK & APP LOGIC -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+    // Standard Cloud Firebase Setup
+    const firebaseConfig = {
+      apiKey: "AIzaSyDemoPlaceholderKey123456789",
+      authDomain: "category-naming-app.firebaseapp.com",
+      projectId: "category-naming-app",
+      storageBucket: "category-naming-app.appspot.com",
+      messagingSenderId: "123456789012",
+      appId: "1:123456789012:web:demo123456"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const quizCollection = collection(db, "quiz_records");
+
+    let cloudRecords = [];
+    const memoryStore = {};
+
+    function safeGetItem(key) {
+      try { return localStorage.getItem(key); } catch (e) { return memoryStore[key] || null; }
+    }
+    function safeSetItem(key, val) {
+      try { localStorage.setItem(key, val); } catch (e) { memoryStore[key] = val; }
+    }
+
+    // Real-Time Cloud Synchronization
+    onSnapshot(quizCollection, (snapshot) => {
+      cloudRecords = [];
+      snapshot.forEach(doc => {
+        cloudRecords.push({ id: doc.id, ...doc.data() });
+      });
+      cloudRecords.sort((a,b) => (a.timestamp || 0) - (b.timestamp || 0));
+      safeSetItem("cat_app_quiz_records", JSON.stringify(cloudRecords));
+      
+      const adminView = document.getElementById("view-admin");
+      if (adminView && !adminView.classList.contains("hidden")) {
+        window.renderAdminDashboard();
+      }
+    }, (error) => {
+      console.warn("Firestore fallback to local cache:", error);
+    });
+
+    // Picture Card Generator
+    function getItemImageURL(itemName) {
+      const name = itemName.toLowerCase().trim();
+      const imageMap = {
+        "oak": "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=300&auto=format&fit=crop&q=80",
+        "maple": "https://images.unsplash.com/photo-1507499739999-097706ad8914?w=300&auto=format&fit=crop&q=80",
+        "pine": "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=300&auto=format&fit=crop&q=80",
+        "hammer": "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=300&auto=format&fit=crop&q=80",
+        "screwdriver": "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=300&auto=format&fit=crop&q=80",
+        "pliers": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=80",
+        "pacific": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80",
+        "atlantic": "https://images.unsplash.com/photo-1439405326854-014607f694d7?w=300&auto=format&fit=crop&q=80",
+        "indian": "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=300&auto=format&fit=crop&q=80",
+        "square": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300&auto=format&fit=crop&q=80",
+        "triangle": "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=300&auto=format&fit=crop&q=80",
+        "rectangle": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=300&auto=format&fit=crop&q=80",
+        "penny": "https://images.unsplash.com/photo-1561414927-6d86591d0c4f?w=300&auto=format&fit=crop&q=80",
+        "nickel": "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=300&auto=format&fit=crop&q=80",
+        "quarter": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=300&auto=format&fit=crop&q=80"
+      };
+      return imageMap[name] || "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=300&auto=format&fit=crop&q=80";
+    }
+
+    const CATEGORY_SESSIONS = [
+      { id: 1, title: "Session 1", trials: [
+        { items: ["Oak", "Maple", "Pine"], targets: ["tree", "trees", "type of tree", "types of trees"] },
+        { items: ["Hammer", "Screwdriver", "Pliers"], targets: ["tool", "tools", "work tools", "hardware tools"] },
+        { items: ["Pacific", "Atlantic", "Indian"], targets: ["ocean", "oceans", "body of water", "bodies of water"] },
+        { items: ["Square", "Triangle", "Rectangle"], targets: ["shape", "shapes", "2d shapes", "polygons"] },
+        { items: ["Penny", "Nickel", "Quarter"], targets: ["coin", "coins", "money", "currency"] }
+      ]},
+      { id: 2, title: "Session 2", trials: [
+        { items: ["Jupiter", "Mars", "Saturn"], targets: ["planet", "planets", "solar system planets"] },
+        { items: ["Violin", "Flute", "Trumpet"], targets: ["instrument", "instruments", "musical instrument"] },
+        { items: ["Dollar", "Euro", "Yen"], targets: ["money", "currency", "currencies"] },
+        { items: ["Robin", "Eagle", "Penguin"], targets: ["bird", "birds"] },
+        { items: ["Biology", "Chemistry", "Physics"], targets: ["science", "sciences", "branches of science"] }
+      ]}
+    ];
+
+    let currentStudentInitials = "";
+    let currentSession = null;
+    let ttsSpeechRate = 1.0;
+    let synth = window.speechSynthesis;
+    let chartSessionScoresInstance = null;
+    let chartStudentLineInstance = null;
+
+    window.navigateTo = function(viewId) {
+      window.stopTTS();
+      ["login", "daily-locked", "completed-all", "trials", "results", "admin"].forEach(v => {
+        const el = document.getElementById("view-" + v);
+        if (el) el.classList.add("hidden");
+      });
+      const target = document.getElementById("view-" + viewId);
+      if (target) target.classList.remove("hidden");
+
+      const portalBtnText = document.getElementById("portal-btn-text");
+      const portalIcon = document.getElementById("portal-icon");
+      if (viewId === "admin") {
+        if (portalBtnText) portalBtnText.textContent = "Student Portal";
+        if (portalIcon) portalIcon.className = "fa-solid fa-graduation-cap";
+      } else {
+        if (portalBtnText) portalBtnText.textContent = "Teacher Admin";
+        if (portalIcon) portalIcon.className = "fa-solid fa-user-shield";
+      }
+    };
+
+    window.togglePortalMode = function() {
+      const adminView = document.getElementById("view-admin");
+      if (adminView
