@@ -56,7 +56,7 @@
         </div>
         <div>
           <h1 class="font-display font-bold text-lg leading-tight text-slate-800">Category Naming</h1>
-          <p class="text-xs text-slate-500 font-medium">Vocabulary Progress Monitor (3rd-4th Grade)</p>
+          <p class="text-xs text-slate-500 font-medium">Vocabulary Progress Monitor (Cloud Sync Active)</p>
         </div>
       </div>
 
@@ -109,7 +109,7 @@
         </form>
         <div class="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-400 flex items-center justify-center space-x-2">
           <i class="fa-solid fa-cloud-check text-emerald-500"></i>
-          <span>Progress monitor with automatic data tracking.</span>
+          <span>Progress monitor with automatic cloud data tracking.</span>
         </div>
       </div>
     </section>
@@ -239,7 +239,7 @@
         <div>
           <div class="flex items-center space-x-2">
             <span class="bg-teal-100 text-teal-700 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase">Teacher Portal</span>
-            <span class="text-xs text-slate-400">Category Naming Progress Monitor</span>
+            <span class="text-xs text-emerald-600 font-semibold"><i class="fa-solid fa-cloud mr-1"></i>Live Cloud Database Connected</span>
           </div>
           <h2 class="font-display font-bold text-2xl text-slate-800 mt-1">Class Progress & IEP Analytics</h2>
         </div>
@@ -530,7 +530,6 @@
         const card = document.createElement("div");
         card.className = "bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4";
         
-        // Clean text-only word cards (no images)
         let wordCardsHTML = `<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-3">`;
         trial.items.forEach(itemName => {
           wordCardsHTML += `
@@ -808,19 +807,19 @@
     });
   </script>
 
-  <!-- BACKGROUND FIREBASE LOADER (SAFE ASYNC SYNC) -->
+  <!-- BACKGROUND FIREBASE LOADER (LIVE CLOUD SYNC CONNECTED) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
     import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
     try {
       const firebaseConfig = {
-        apiKey: "AIzaSyDemoPlaceholderKey123456789",
-        authDomain: "category-naming-app.firebaseapp.com",
-        projectId: "category-naming-app",
-        storageBucket: "category-naming-app.appspot.com",
-        messagingSenderId: "123456789012",
-        appId: "1:123456789012:web:demo123456"
+        apiKey: "AIzaSyBsY8IbDIKlz1PL2ofExgL09IrmzjhgwLQ",
+        authDomain: "category-naming-tracker.firebaseapp.com",
+        projectId: "category-naming-tracker",
+        storageBucket: "category-naming-tracker.firebasestorage.app",
+        messagingSenderId: "838539088582",
+        appId: "1:838539088582:web:fd747eddfa0974cdcd7dc7"
       };
 
       const app = initializeApp(firebaseConfig);
@@ -844,7 +843,7 @@
         }
       }, (err) => console.warn("Firestore sync optional offline fallback active:", err));
     } catch(err) {
-      console.warn("Firebase optional module not loaded, using local storage engine:", err);
+      console.warn("Firebase module fallback active:", err);
     }
   </script>
 </body>
